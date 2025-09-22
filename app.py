@@ -109,7 +109,7 @@ if st.session_state.logged_in:
 
         # Metriche principali
         st.metric("Totale Task", len(df))
-        st.metric("Task Completati", len(df[df["Stato"].str.lower() == "completato"]))
+        st.metric("Task Completati", len(df[df["Stato"] == "completato"]))
         st.metric("Story Points Totali", df["Story Points"].sum())
 
         # -----------------------------
@@ -145,7 +145,7 @@ if st.session_state.logged_in:
 
         # Burndown
         df_sorted = df.sort_values("Data fine")
-        completed_points = df_sorted[df_sorted["Stato"].str.lower()=="completato"]["Story Points"].cumsum()
+        completed_points = df_sorted[df_sorted["Stato"]=="completato"]["Story Points"].cumsum()
         total_points = df["Story Points"].sum()
         remaining = total_points - completed_points
         fig4, ax4 = plt.subplots()
