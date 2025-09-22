@@ -6,8 +6,8 @@ pandas>=2.1.0
 matplotlib>=3.8.0
 openpyxl>=3.1.0
 
-# Google Sheets integration
-gspread>=6.10.0
+# Google Sheets integration (compatibile Python 3.13)
+gspread<=6.2.1
 oauth2client>=4.1.3
 
 # PDF report generation
