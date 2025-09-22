@@ -3,7 +3,8 @@ import hashlib
 import json
 import io
 import pandas as pd
-from utils import charts, kanban, reports, notifications
+import matplotlib.pyplot as plt
+from utils import kanban, reports, notifications
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
@@ -12,6 +13,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 # -----------------------------
 st.sidebar.title("🔐 Login")
 
+# users.json deve contenere username: hashed_password
 with open("users.json") as f:
     users = json.load(f)
 
@@ -20,9 +22,11 @@ if "logged_in" not in st.session_state:
 if "username" not in st.session_state:
     st.session_state.username = ""
 
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
 def check_login(username, password):
-    hashed_input = hashlib.sha256(password.encode()).hexdigest()
-    return users.get(username) == hashed_input
+    return users.get(username) == hash_password(password)
 
 if not st.session_state.logged_in:
     username_input = st.sidebar.text_input("Username")
@@ -58,7 +62,7 @@ st.sidebar.download_button(
 )
 
 # -----------------------------
-# FUNZIONI PER CARICARE DATI
+# FUNZIONI CARICAMENTO DATI
 # -----------------------------
 def load_excel(uploaded_file):
     in_memory_file = io.BytesIO(uploaded_file.read())
@@ -108,24 +112,65 @@ if st.session_state.logged_in:
         st.metric("Task Completati", len(df[df["Stato"].str.lower() == "completato"]))
         st.metric("Story Points Totali", df["Story Points"].sum())
 
-        # Grafici multipli
+        # -----------------------------
+        # GRAFICI
+        # -----------------------------
         st.subheader("📈 Grafici")
-        st.pyplot(charts.plot_tasks_per_week(df, date_col="Data fine"))
-        st.pyplot(charts.plot_tasks_per_state(df))
-        st.pyplot(charts.plot_velocity(df))
-        total_story_points = df["Story Points"].sum()
-        st.pyplot(charts.plot_burndown(df, total_story_points))
 
+        # Tasks per settimana
+        df["Settimana"] = df["Data fine"].dt.to_period("W").astype(str)
+        tasks_week = df.groupby("Settimana").size()
+        fig1, ax1 = plt.subplots()
+        tasks_week.plot(kind="bar", ax=ax1)
+        ax1.set_title("Task per settimana")
+        ax1.set_xlabel("Settimana")
+        ax1.set_ylabel("Numero Task")
+        st.pyplot(fig1)
+
+        # Tasks per Stato
+        tasks_state = df["Stato"].value_counts()
+        fig2, ax2 = plt.subplots()
+        tasks_state.plot(kind="pie", autopct='%1.1f%%', ax=ax2)
+        ax2.set_ylabel("")
+        ax2.set_title("Task per Stato")
+        st.pyplot(fig2)
+
+        # Velocity
+        velocity = df.groupby("Assegnato a")["Story Points"].sum()
+        fig3, ax3 = plt.subplots()
+        velocity.plot(kind="bar", ax=ax3)
+        ax3.set_title("Velocity")
+        ax3.set_ylabel("Story Points")
+        st.pyplot(fig3)
+
+        # Burndown
+        df_sorted = df.sort_values("Data fine")
+        completed_points = df_sorted[df_sorted["Stato"].str.lower()=="completato"]["Story Points"].cumsum()
+        total_points = df["Story Points"].sum()
+        remaining = total_points - completed_points
+        fig4, ax4 = plt.subplots()
+        ax4.plot(remaining.index, remaining.values, marker='o')
+        ax4.set_title("Burndown Chart")
+        ax4.set_xlabel("Task completati")
+        ax4.set_ylabel("Story Points rimanenti")
+        st.pyplot(fig4)
+
+        # -----------------------------
         # Kanban semplice
+        # -----------------------------
         kanban.show_kanban(df)
 
+        # -----------------------------
         # Esportazione report
+        # -----------------------------
         if st.button("📥 Esporta PDF"):
             st.download_button("Scarica PDF", reports.export_pdf(df), "report.pdf")
         if st.button("📥 Esporta Excel"):
             st.download_button("Scarica Excel", reports.export_excel(df), "report.xlsx")
 
+        # -----------------------------
         # Notifiche task in ritardo
+        # -----------------------------
         overdue = notifications.check_overdue_tasks(df)
         if not overdue.empty:
             st.warning(f"{len(overdue)} task sono in ritardo!")
