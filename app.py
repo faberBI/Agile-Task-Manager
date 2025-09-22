@@ -83,8 +83,9 @@ def load_google_sheet(json_keyfile, sheet_name):
 # DASHBOARD APP
 # -----------------------------
 if st.session_state.logged_in:
-    st.subheader("📊 Dashboard")
-
+    st.title("🚀 Agile Task Manager Dashboard")
+    st.markdown("Benvenuto nella tua panoramica dei task! Qui puoi monitorare progressi, story points e task in ritardo.")
+    
     # Scegli fonte dati
     data_source = st.radio("Seleziona fonte dati:", ["Excel", "Google Sheet"])
     df = pd.DataFrame()
@@ -126,7 +127,7 @@ if st.session_state.logged_in:
         # -----------------------------
         # Grafici
         # -----------------------------
-        st.subheader("📈 Grafici")
+        st.subheader("📊 Performance & Task Overview")
 
         # Tasks per settimana
         if "Data fine" in df.columns and not df["Data fine"].isna().all():
