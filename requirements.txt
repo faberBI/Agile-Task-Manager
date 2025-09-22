@@ -1,0 +1,10 @@
+streamlit
+pandas
+matplotlib
+openpyxl
+streamlit-authenticator
+streamlit-sortable
+gspread
+oauth2client
+reportlab
+smtplib
