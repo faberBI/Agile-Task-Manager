@@ -13,7 +13,6 @@ from oauth2client.service_account import ServiceAccountCredentials
 # -----------------------------
 st.sidebar.title("🔐 Login")
 
-# users.json deve contenere username: hashed_password
 with open("users.json") as f:
     users = json.load(f)
 
@@ -77,7 +76,7 @@ def load_google_sheet(json_keyfile, sheet_name):
     sheet = client.open(sheet_name).sheet1
     data = sheet.get_all_records()
     df = pd.DataFrame(data)
-    df["Data fine"] = pd.to_datetime(df["Data fine"], errors="coerce")
+    df["Data fine"] = pd.to_datetime(df["Data fine"], errors="coerce", dayfirst=True)
     return df
 
 # -----------------------------
@@ -105,6 +104,7 @@ if st.session_state.logged_in:
             df = load_google_sheet("temp_key.json", sheet_name)
 
     if not df.empty:
+        # Filtra per utente loggato
         df = df[df["Assegnato a"] == st.session_state.username]
 
         # Metriche principali
