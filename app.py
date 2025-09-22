@@ -93,6 +93,9 @@ if st.session_state.logged_in:
         uploaded_file = st.file_uploader("Carica Excel", type=["xlsx"])
         if uploaded_file:
             df = load_excel(uploaded_file)
+            st.write(df.head())
+            st.write(df.dtypes)
+
     
     elif data_source == "Google Sheet":
         st.info("Serve il file JSON della service account e il nome del Sheet")
@@ -102,6 +105,9 @@ if st.session_state.logged_in:
             with open("temp_key.json", "wb") as f:
                 f.write(json_file.read())
             df = load_google_sheet("temp_key.json", sheet_name)
+            st.write(df.head())
+            st.write(df.dtypes)
+
 
     if not df.empty:
         # Pulizia e filtro per utente loggato
