@@ -10,7 +10,10 @@ def send_email(sender, password, receiver, subject, body):
         server.login(sender, password)
         server.sendmail(sender, receiver, msg.as_string())
 
+import pandas as pd
+
 def check_overdue_tasks(df):
     today = pd.Timestamp.today()
-    overdue = df[(df["Stato"]!="Completato") & (df["Data fine"] < today)]
+    overdue = df[df["Data fine"] < today]
     return overdue
+
