@@ -16,3 +16,21 @@ def load_excel(file):
     df = pd.read_excel(file, engine="openpyxl")
     df["Data fine"] = pd.to_datetime(df["Data fine"])
     return df
+
+import io
+
+def load_excel(uploaded_file):
+    in_memory_file = io.BytesIO(uploaded_file.read())
+    df = pd.read_excel(in_memory_file, engine="openpyxl")
+
+    # Standardizza nomi colonne
+    df.columns = df.columns.str.strip()
+
+    # Standardizza stato
+    df["Stato"] = df["Stato"].str.lower().replace({"incorso": "in corso"})
+
+    # Converte Data fine in datetime
+    df["Data fine"] = pd.to_datetime(df["Data fine"], errors="coerce", dayfirst=True, format=None)
+
+    return df
+
