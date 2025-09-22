@@ -107,12 +107,21 @@ if st.session_state.logged_in:
             st.write(df.head())
 
 
-   if not df.empty:
+  if not df.empty:
+    # -----------------------------
+    # Pulizia dati
+    # -----------------------------
+    df["Assegnato a"] = df["Assegnato a"].astype(str).str.strip()
+    df["Stato"] = df["Stato"].astype(str).str.lower()
+    df["Story Points"] = pd.to_numeric(df["Story Points"], errors="coerce").fillna(0)
+    df["Data fine"] = pd.to_datetime(df["Data fine"], errors="coerce")
+
     # -----------------------------
     # Metriche principali
     # -----------------------------
+    st.subheader("📊 Metriche principali")
     st.metric("Totale Task", len(df))
-    st.metric("Task Completati", len(df[df["Stato"].str.lower() == "completato"]))
+    st.metric("Task Completati", len(df[df["Stato"] == "completato"]))
     st.metric("Story Points Totali", df["Story Points"].sum())
 
     # -----------------------------
@@ -121,56 +130,65 @@ if st.session_state.logged_in:
     st.subheader("📈 Grafici")
 
     # Tasks per settimana
-    df["Settimana"] = df["Data fine"].dt.to_period("W").astype(str)
-    tasks_week = df.groupby("Settimana").size()
-    if not tasks_week.empty:
-        fig1, ax1 = plt.subplots()
-        tasks_week.plot(kind="bar", ax=ax1)
-        ax1.set_title("Task per settimana")
-        ax1.set_xlabel("Settimana")
-        ax1.set_ylabel("Numero Task")
-        st.pyplot(fig1)
+    if "Data fine" in df.columns and not df["Data fine"].isna().all():
+        df["Settimana"] = df["Data fine"].dt.to_period("W").astype(str)
+        tasks_week = df.groupby("Settimana").size()
+        if not tasks_week.empty:
+            fig1, ax1 = plt.subplots()
+            tasks_week.plot(kind="bar", ax=ax1, color="skyblue")
+            ax1.set_title("Task per settimana")
+            ax1.set_xlabel("Settimana")
+            ax1.set_ylabel("Numero Task")
+            st.pyplot(fig1)
 
     # Tasks per Stato
     tasks_state = df["Stato"].value_counts()
     if not tasks_state.empty:
         fig2, ax2 = plt.subplots()
-        tasks_state.plot(kind="pie", autopct='%1.1f%%', ax=ax2)
+        tasks_state.plot(kind="pie", autopct='%1.1f%%', startangle=90, ax=ax2)
         ax2.set_ylabel("")
         ax2.set_title("Task per Stato")
         st.pyplot(fig2)
 
-    # Velocity
+    # Velocity per utente
     velocity = df.groupby("Assegnato a")["Story Points"].sum()
-    fig3, ax3 = plt.subplots()
-    velocity.plot(kind="bar", ax=ax3)
-    ax3.set_title("Velocity")
-    ax3.set_ylabel("Story Points")
-    st.pyplot(fig3)
+    if not velocity.empty:
+        fig3, ax3 = plt.subplots()
+        velocity.plot(kind="bar", ax=ax3, color="lightgreen")
+        ax3.set_title("Velocity per utente")
+        ax3.set_ylabel("Story Points")
+        st.pyplot(fig3)
 
     # Burndown Chart
     df_sorted = df.sort_values("Data fine")
-    completed_points = df_sorted[df_sorted["Stato"].str.lower() == "completato"]["Story Points"].cumsum()
+    completed_points = df_sorted[df_sorted["Stato"] == "completato"]["Story Points"].cumsum()
     total_points = df["Story Points"].sum()
     remaining = total_points - completed_points
     if not remaining.empty:
         fig4, ax4 = plt.subplots()
-        ax4.plot(remaining.index, remaining.values, marker='o')
+        ax4.plot(remaining.index, remaining.values, marker='o', color="red")
         ax4.set_title("Burndown Chart")
         ax4.set_xlabel("Task completati")
         ax4.set_ylabel("Story Points rimanenti")
         st.pyplot(fig4)
 
+    # -----------------------------
     # Kanban
+    # -----------------------------
     kanban.show_kanban(df)
 
+    # -----------------------------
     # Esportazione report
-    if st.button("📥 Esporta PDF"):
+    # -----------------------------
+    st.subheader("📥 Esporta report")
+    if st.button("Esporta PDF"):
         st.download_button("Scarica PDF", reports.export_pdf(df), "report.pdf")
-    if st.button("📥 Esporta Excel"):
+    if st.button("Esporta Excel"):
         st.download_button("Scarica Excel", reports.export_excel(df), "report.xlsx")
 
+    # -----------------------------
     # Notifiche task in ritardo
+    # -----------------------------
     overdue = notifications.check_overdue_tasks(df)
     if not overdue.empty:
         st.warning(f"{len(overdue)} task sono in ritardo!")
